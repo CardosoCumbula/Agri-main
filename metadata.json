@@ -1,0 +1,5 @@
+{
+  "name": "AgroMoz - Farmer-to-Market",
+  "description": "A digital marketplace connecting Mozambican farmers directly to buyers, ensuring fair prices and fresh produce.",
+  "requestFramePermissions": ["geolocation"]
+}

@@ -1,0 +1,81 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    // Collection: users
+    // Fields: uid, displayName, email, role, location, phone, createdAt
+    //
+    // Collection: products
+    // Fields: id, farmerId, farmerName, title, description, category, price, unit, quantity, location, imageUrl, createdAt, status
+    //
+    // Collection: orders
+    // Fields: id, buyerId, farmerId, productId, productTitle, quantity, totalPrice, status, createdAt
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    function isDocOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.uid;
+    }
+    function isFarmer() {
+      return isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'farmer';
+    }
+    function isAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.email_verified == true && request.auth.token.email in [
+          "cardosocumbula09@gmail.com",
+          "ivandromaoze138@gmail.com"
+        ]
+      );
+    }
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'displayName', 'email', 'role']) &&
+             data.uid is string && data.displayName is string && data.email is string &&
+             data.role in ['farmer', 'buyer', 'admin'];
+    }
+    function isValidProduct(data) {
+      return data.keys().hasAll(['farmerId', 'title', 'category', 'price', 'unit', 'quantity', 'location']) &&
+             data.farmerId is string && data.title is string && data.category is string &&
+             data.price is number && data.price >= 0 &&
+             data.unit is string && data.quantity is number && data.quantity >= 0;
+    }
+    function isValidOrder(data) {
+      return data.keys().hasAll(['buyerId', 'farmerId', 'productId', 'quantity', 'totalPrice', 'status']) &&
+             data.buyerId is string && data.farmerId is string && data.productId is string &&
+             data.quantity is number && data.quantity > 0 &&
+             data.totalPrice is number && data.totalPrice >= 0 &&
+             data.status in ['pending', 'confirmed', 'completed', 'cancelled'];
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isOwner(userId) && isValidUser(request.resource.data) && (request.resource.data.role != 'admin' || isAdmin());
+      allow update: if isOwner(userId) && isValidUser(request.resource.data) && (request.resource.data.role == resource.data.role || isAdmin());
+    }
+
+    match /products/{productId} {
+      allow read: if true;
+      allow create: if isAuthenticated() && isFarmer() && isValidProduct(request.resource.data) && request.resource.data.farmerId == request.auth.uid;
+      allow update: if isAuthenticated() && (resource.data.farmerId == request.auth.uid || isAdmin()) && isValidProduct(request.resource.data);
+      allow delete: if isAuthenticated() && (resource.data.farmerId == request.auth.uid || isAdmin());
+    }
+
+    match /orders/{orderId} {
+      allow read: if isAuthenticated() && (resource.data.buyerId == request.auth.uid || resource.data.farmerId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && isValidOrder(request.resource.data) && request.resource.data.buyerId == request.auth.uid;
+      allow update: if isAuthenticated() && (resource.data.buyerId == request.auth.uid || resource.data.farmerId == request.auth.uid || isAdmin()) && isValidOrder(request.resource.data);
+    }
+  }
+}
