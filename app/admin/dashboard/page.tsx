@@ -222,7 +222,7 @@ export default function AdminDashboardPage() {
                     cx="50%"
                     cy="50%"
                     labelLine={false}
-                    label={({ range, count }) => `${range}: ${count}`}
+                    label={(entry: any) => `${entry.range}: ${entry.count}`}
                     outerRadius={80}
                     fill="#8884d8"
                     dataKey="count"

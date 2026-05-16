@@ -25,7 +25,7 @@ export function ProductCard({ product }: ProductCardProps) {
     return product.imageUrl || 
            productImages[title] || 
            categoryImages[category] || 
-           'https://images.unsplash.com/photo-1574943320219-553eb213f72d?w=400&h=400&fit=crop';
+           'https://picsum.photos/400/400?random=999';
   };
 
   return (
@@ -43,7 +43,7 @@ export function ProductCard({ product }: ProductCardProps) {
           className="object-cover group-hover:scale-110 transition-transform duration-500"
           referrerPolicy="no-referrer"
           onError={(e) => {
-            e.currentTarget.src = 'https://images.unsplash.com/photo-1574943320219-553eb213f72d?w=400&h=400&fit=crop';
+            e.currentTarget.src = 'https://picsum.photos/400/400?random=999';
           }}
         />
         <div className="absolute top-3 left-3 right-3 flex items-center justify-between">

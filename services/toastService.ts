@@ -1,4 +1,7 @@
 // Toast Notification Service
+'use client';
+
+import React from 'react';
 import { toast } from 'react-hot-toast';
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info';
@@ -15,19 +18,9 @@ export function showToast(message: string, type: ToastType = 'info', duration: n
     case 'error':
       return toast.error(message, options);
     case 'warning':
-      return toast((t) => (
-        <div className="flex items-center gap-2">
-          <span>⚠️</span>
-          <span>{message}</span>
-        </div>
-      ), options);
+      return toast('⚠️ ' + message, options);
     default:
-      return toast((t) => (
-        <div className="flex items-center gap-2">
-          <span>ℹ️</span>
-          <span>{message}</span>
-        </div>
-      ), options);
+      return toast('ℹ️ ' + message, options);
   }
 }
 

@@ -36,7 +36,7 @@ export const productSchema = z.object({
 });
 
 interface FormFieldProps {
-  label: string;
+  label?: string;
   error?: string;
   required?: boolean;
   children: React.ReactNode;
@@ -45,10 +45,12 @@ interface FormFieldProps {
 export function FormField({ label, error, required, children }: FormFieldProps) {
   return (
     <div className="space-y-1.5">
-      <label className="block text-sm font-medium text-stone-900">
-        {label}
-        {required && <span className="text-red-600 ml-1">*</span>}
-      </label>
+      {label && (
+        <label className="block text-sm font-medium text-stone-900">
+          {label}
+          {required && <span className="text-red-600 ml-1">*</span>}
+        </label>
+      )}
       {children}
       {error && (
         <div className="flex items-center gap-1 text-red-600 text-xs mt-1">

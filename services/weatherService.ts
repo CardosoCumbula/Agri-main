@@ -46,7 +46,7 @@ class WeatherService {
 
   async getWeatherByRegion(region: string = 'maputo'): Promise<WeatherData> {
     try {
-      const cached = this.getFromCache(`weather_${region}`);
+      const cached = this.getFromCache<WeatherData>(`weather_${region}`);
       if (cached) return cached;
 
       const coords = MOZAMBIQUE_COORDS[region.toLowerCase()] || MOZAMBIQUE_COORDS.maputo;
@@ -86,7 +86,7 @@ class WeatherService {
 
   async getForecast(region: string = 'maputo', days: number = 7): Promise<WeatherForecast[]> {
     try {
-      const cached = this.getFromCache(`forecast_${region}`);
+      const cached = this.getFromCache<WeatherForecast[]>(`forecast_${region}`);
       if (cached) return cached;
 
       const coords = MOZAMBIQUE_COORDS[region.toLowerCase()] || MOZAMBIQUE_COORDS.maputo;
