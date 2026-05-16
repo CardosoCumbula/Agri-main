@@ -3,45 +3,20 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { AdminSidebar } from '@/components/admin/AdminSidebar';
-import { getProductStats } from '@/lib/admin/localStorage';
-import { Menu, Package, TrendingUp, Loader2, LogOut, ShoppingCart, Tag } from 'lucide-react';
-
-interface Stats {
-  totalProducts: number;
-  sellProducts: number;
-  buyProducts: number;
-  categories: number;
-  categoryBreakdown: Array<{
-    category: string;
-    count: number;
-  }>;
-}
+import { DashboardAnalytics } from '@/components/DashboardAnalytics';
+import { Menu, LogOut } from 'lucide-react';
+import { motion } from 'motion/react';
 
 export default function AdminAnalyticsPage() {
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [stats, setStats] = useState<Stats | null>(null);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const token = localStorage.getItem('admin_token');
     if (!token) {
       router.push('/admin/login');
-      return;
     }
-    fetchStats();
   }, [router]);
-
-  const fetchStats = async () => {
-    try {
-      const data = await getProductStats();
-      setStats(data);
-    } catch (error) {
-      console.error('Erro ao buscar estatísticas:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleLogout = () => {
     localStorage.removeItem('admin_token');
@@ -50,54 +25,49 @@ export default function AdminAnalyticsPage() {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-stone-50">
       <AdminSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       <main className="flex-1 lg:ml-64 overflow-auto">
-        <div className="bg-white border-b border-gray-200 p-4 lg:p-6 flex items-center justify-between sticky top-0 shadow-sm">
+        {/* Header */}
+        <div className="bg-white border-b border-stone-200 p-4 lg:p-6 flex items-center justify-between sticky top-0 shadow-sm z-10">
           <div className="flex items-center gap-4">
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="lg:hidden text-gray-600 hover:text-gray-900"
+              className="lg:hidden text-stone-600 hover:text-stone-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 rounded-lg p-2"
+              aria-label="Toggle navigation"
             >
               <Menu size={24} />
             </button>
-            <h1 className="text-2xl font-bold text-gray-900">Análise e Relatórios</h1>
+            <div>
+              <h1 className="text-2xl lg:text-3xl font-bold text-stone-900">Análise e Relatórios</h1>
+              <p className="text-stone-600 text-sm mt-1">Visualize estatísticas e desempenho</p>
+            </div>
           </div>
-          <button
+          <motion.button
             onClick={handleLogout}
-            className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-all focus:outline-none focus:ring-2 focus:ring-red-500"
+            aria-label="Sair"
           >
-            <LogOut size={20} />
-          </button>
+            <LogOut size={18} aria-hidden="true" />
+            <span className="hidden sm:inline">Sair</span>
+          </motion.button>
         </div>
 
-        <div className="p-4 lg:p-6">
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="animate-spin text-green-600" size={32} />
-            </div>
-          ) : stats ? (
-            <div className="space-y-6">
-              {/* Key Metrics Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                {/* Total Products */}
-                <div className="bg-white rounded-lg shadow p-6 border-l-4 border-green-600">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-gray-600 text-sm mb-2">Total de Produtos</p>
-                      <p className="text-3xl font-bold text-gray-900">{stats.totalProducts}</p>
-                    </div>
-                    <Package className="text-green-600" size={32} />
-                  </div>
-                </div>
-
-                {/* Sell Products */}
-                <div className="bg-white rounded-lg shadow p-6 border-l-4 border-blue-600">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-gray-600 text-sm mb-2">Para Vender</p>
-                      <p className="text-3xl font-bold text-gray-900">{stats.sellProducts}</p>
+        {/* Content */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="p-4 lg:p-8 max-w-7xl mx-auto"
+        >
+          <DashboardAnalytics />
+        </motion.div>
+      </main>
+    </div>
+  );
+}
                     </div>
                     <ShoppingCart className="text-blue-600" size={32} />
                   </div>

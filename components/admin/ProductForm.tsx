@@ -26,7 +26,7 @@ interface ProductFormProps {
   isLoading: boolean;
 }
 
-const CATEGORIES = ['Vegetais', 'Grãos', 'Frutas', 'Insumos'];
+const CATEGORIES = ['Vegetais', 'Frutas', 'Legumes', 'Cereais', 'Grãos', 'Oleaginosas', 'Insumos'];
 
 export const ProductForm: React.FC<ProductFormProps> = ({
   product,

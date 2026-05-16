@@ -2,76 +2,85 @@
 
 import React from 'react';
 import Image from 'next/image';
-import { MapPin, Tag, ShoppingBag } from 'lucide-react';
+import { MapPin, ShoppingBag } from 'lucide-react';
 import { motion } from 'motion/react';
+import { productImages, categoryImages } from '@/lib/mozambique-data';
 
 interface ProductCardProps {
   product: {
     id: string;
     title: string;
     price: number;
-    unit: string;
     location: string;
     category: string;
     imageUrl?: string;
-    farmerName: string;
+    description?: string;
+    contact?: string;
   };
 }
 
 export function ProductCard({ product }: ProductCardProps) {
+  const getMozambiqueImage = (title: string, category: string) => {
+    // Priority: product-specific image > category image > default
+    return product.imageUrl || 
+           productImages[title] || 
+           categoryImages[category] || 
+           'https://images.unsplash.com/photo-1574943320219-553eb213f72d?w=400&h=400&fit=crop';
+  };
+
   return (
     <motion.div
       whileHover={{ y: -5 }}
-      className="bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-sm hover:shadow-xl transition-all group"
+      className="bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-sm hover:shadow-xl transition-all group h-full flex flex-col focus-within:ring-2 focus-within:ring-emerald-500"
+      role="article"
+      aria-label={`${product.title} - ${product.price} MZN`}
     >
-      <div className="relative aspect-square overflow-hidden bg-stone-100">
+      <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-stone-100 to-stone-200">
         <Image 
-          src={product.imageUrl || `https://picsum.photos/seed/${product.title}/400/400`} 
-          alt={product.title}
+          src={getMozambiqueImage(product.title, product.category)}
+          alt={`${product.title} - Produto agrícola de ${product.location}`}
           fill
           className="object-cover group-hover:scale-110 transition-transform duration-500"
           referrerPolicy="no-referrer"
+          onError={(e) => {
+            e.currentTarget.src = 'https://images.unsplash.com/photo-1574943320219-553eb213f72d?w=400&h=400&fit=crop';
+          }}
         />
-        <div className="absolute top-3 left-3">
-          <span className="bg-white/90 backdrop-blur-sm text-stone-800 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full shadow-sm">
+        <div className="absolute top-3 left-3 right-3 flex items-center justify-between">
+          <span className="bg-emerald-600 text-white text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full shadow-md">
             {product.category}
+          </span>
+          <span className="bg-orange-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-md">
+            MZN {product.price.toFixed(2)}
           </span>
         </div>
       </div>
 
-      <div className="p-5">
-        <div className="flex justify-between items-start mb-2">
-          <h3 className="font-bold text-stone-900 line-clamp-1">{product.title}</h3>
-          <p className="text-emerald-700 font-bold whitespace-nowrap">
-            {product.price} MT
-          </p>
+      <div className="p-5 flex flex-col flex-grow">
+        <div className="mb-2">
+          <h3 className="font-bold text-stone-900 line-clamp-2 text-base">{product.title}</h3>
         </div>
         
-        <div className="flex items-center text-xs text-stone-500 mb-4 space-x-3">
-          <div className="flex items-center">
-            <MapPin className="w-3 h-3 mr-1 text-stone-400" />
-            <span>{product.location}</span>
-          </div>
-          <div className="flex items-center">
-            <span>{product.unit}</span>
-          </div>
+        {product.description && (
+          <p className="text-xs text-stone-600 mb-3 line-clamp-2 flex-grow">{product.description}</p>
+        )}
+        
+        <div className="flex items-center text-xs text-stone-500 mb-4 bg-stone-50 p-2 rounded-lg">
+          <MapPin className="w-4 h-4 mr-1.5 text-emerald-600 flex-shrink-0" />
+          <span className="font-medium">{product.location}</span>
         </div>
 
-        <div className="flex items-center justify-between pt-4 border-t border-stone-100">
-          <div className="flex items-center space-x-2">
-            <div className="w-6 h-6 rounded-full bg-stone-200 overflow-hidden relative">
-              <Image 
-                src={`https://picsum.photos/seed/${product.farmerName}/50/50`} 
-                alt={product.farmerName} 
-                fill
-                className="object-cover"
-                referrerPolicy="no-referrer"
-              />
-            </div>
-            <span className="text-xs font-medium text-stone-600">{product.farmerName}</span>
+        <div className="flex items-center justify-between pt-4 border-t border-stone-100 mt-auto">
+          <div className="text-xs">
+            <p className="text-stone-500">Vendedor Local</p>
+            <p className="text-emerald-700 font-bold">AgroMoz</p>
           </div>
-          <button className="p-2 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-600 hover:text-white transition-colors">
-            <ShoppingBag className="w-4 h-4" />
+          <button 
+            className="p-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-all active:scale-95 shadow-md hover:shadow-lg" 
+            title="Adicionar ao carrinho" 
+            aria-label="Adicionar ao carrinho"
+          >
+            <ShoppingBag className="w-5 h-5" />
           </button>
         </div>
       </div>

@@ -2,15 +2,17 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { useAuth } from './FirebaseProvider';
 import { usePathname } from 'next/navigation';
-import { Menu, X, LogOut } from 'lucide-react';
+import { Menu, X, LogOut, LogIn } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 export function Navbar() {
-  const { user, profile, login, logout } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
+  const [isLoggedIn, setIsLoggedIn] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return !!localStorage.getItem('admin_token');
+  });
 
   const navLinks = [
     { href: '/', label: 'A Machamba' },
@@ -21,22 +23,28 @@ export function Navbar() {
 
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + '/');
 
+  const handleLogout = () => {
+    localStorage.removeItem('admin_token');
+    localStorage.removeItem('admin_email');
+    setIsLoggedIn(false);
+  };
+
   return (
-    <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-stone-200 shadow-sm">
+    <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-stone-200 shadow-sm" role="navigation" aria-label="Navegação principal">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16 items-center">
           {/* Logo */}
           <div className="flex items-center">
-            <Link href="/" className="flex items-center space-x-2">
+            <Link href="/" className="flex items-center space-x-2" aria-label="AgroMoz Home">
               <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-xl">A</span>
+                <span className="text-white font-bold text-xl" aria-hidden="true">🌾</span>
               </div>
               <span className="text-xl font-serif font-bold tracking-tight text-stone-900">AgroMoz</span>
             </Link>
           </div>
 
           {/* Desktop Nav */}
-          <div className="hidden md:flex items-center space-x-1">
+          <div className="hidden md:flex items-center space-x-1" role="menubar">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
@@ -46,6 +54,7 @@ export function Navbar() {
                     ? 'text-emerald-700 bg-emerald-50'
                     : 'text-stone-700 hover:text-emerald-700 hover:bg-stone-50'
                 }`}
+                aria-current={isActive(link.href) ? 'page' : undefined}
               >
                 {link.label}
               </Link>
@@ -54,31 +63,33 @@ export function Navbar() {
 
           {/* Right Side */}
           <div className="hidden md:flex items-center space-x-4">
-            {user ? (
+            {isLoggedIn ? (
               <>
-                {profile?.role === 'farmer' && (
-                  <Link href="/dashboard" className="text-sm font-bold text-emerald-700 hover:bg-emerald-50 px-3 py-2 rounded-lg">
-                    Minha Conta
-                  </Link>
-                )}
-                <div className="flex items-center space-x-2 bg-stone-100 px-4 py-2 rounded-xl">
-                  <span className="text-sm font-bold text-stone-800">{profile?.displayName?.split(' ')[0]}</span>
-                </div>
-                <button 
-                  onClick={logout}
-                  className="text-sm font-bold text-stone-500 hover:text-red-600 px-2 flex items-center gap-1"
+                <Link 
+                  href="/admin/products" 
+                  className="text-sm font-bold text-emerald-700 hover:bg-emerald-50 px-3 py-2 rounded-lg transition-all"
+                  aria-label="Painel de Administração"
                 >
-                  <LogOut className="w-4 h-4" />
+                  Painel Admin
+                </Link>
+                <button 
+                  onClick={handleLogout}
+                  className="text-sm font-bold text-stone-600 hover:text-red-600 px-3 py-2 rounded-lg flex items-center gap-1 transition-all hover:bg-red-50"
+                  aria-label="Sair da conta"
+                >
+                  <LogOut className="w-4 h-4" aria-hidden="true" />
                   Sair
                 </button>
               </>
             ) : (
-              <button 
-                onClick={login}
-                className="bg-emerald-700 text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-emerald-800 transition-all shadow-md active:scale-95"
+              <Link
+                href="/admin/login"
+                className="bg-emerald-700 text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-emerald-800 transition-all shadow-md active:scale-95 flex items-center gap-2"
+                aria-label="Fazer Login"
               >
-                Entrar
-              </button>
+                <LogIn className="w-4 h-4" aria-hidden="true" />
+                Administração
+              </Link>
             )}
           </div>
 
@@ -86,7 +97,9 @@ export function Navbar() {
           <div className="md:hidden flex items-center">
             <button
               onClick={() => setIsOpen(!isOpen)}
-              className="p-2 rounded-md text-stone-600 hover:text-stone-900 focus:outline-none"
+              className="p-2 rounded-md text-stone-600 hover:text-stone-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              aria-expanded={isOpen}
+              aria-label="Menu de navegação"
             >
               {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>
@@ -120,44 +133,34 @@ export function Navbar() {
                 </Link>
               ))}
               
-              {user ? (
-                <>
-                  {profile?.role === 'farmer' && (
+              <div className="pt-4 border-t border-stone-100">
+                {isLoggedIn ? (
+                  <>
                     <Link 
-                      href="/dashboard" 
+                      href="/admin/products" 
                       onClick={() => setIsOpen(false)}
-                      className="block px-3 py-3 rounded-lg font-medium text-emerald-600 hover:bg-emerald-50"
+                      className="block px-3 py-3 rounded-lg font-medium text-emerald-700 hover:bg-emerald-50"
                     >
-                      Minha Conta
+                      Painel Admin
                     </Link>
-                  )}
-                  <div className="pt-4 border-t border-stone-100">
-                    <div className="flex items-center px-3 py-3">
-                      <span className="text-stone-700 font-medium">{profile?.displayName}</span>
-                    </div>
                     <button 
-                      onClick={() => {
-                        logout();
-                        setIsOpen(false);
-                      }}
-                      className="w-full text-left px-3 py-3 text-base font-medium text-red-600 hover:bg-red-50 rounded-md flex items-center gap-2"
+                      onClick={handleLogout}
+                      className="w-full text-left px-3 py-3 text-sm font-bold text-red-600 hover:bg-red-50 rounded-md flex items-center gap-2"
                     >
                       <LogOut className="w-4 h-4" />
                       Sair
                     </button>
-                  </div>
-                </>
-              ) : (
-                <button 
-                  onClick={() => {
-                    login();
-                    setIsOpen(false);
-                  }}
-                  className="w-full mt-4 bg-emerald-600 text-white px-4 py-3 rounded-xl font-semibold text-center hover:bg-emerald-700 transition-all"
-                >
-                  Entrar
-                </button>
-              )}
+                  </>
+                ) : (
+                  <Link
+                    href="/admin/login"
+                    onClick={() => setIsOpen(false)}
+                    className="block px-3 py-3 rounded-lg font-medium bg-emerald-700 text-white hover:bg-emerald-800 text-center"
+                  >
+                    Administração
+                  </Link>
+                )}
+              </div>
             </div>
           </motion.div>
         )}

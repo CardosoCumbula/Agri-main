@@ -5,11 +5,13 @@ import { motion } from 'motion/react';
 
 const categories = [
   { id: 'all', name: 'Todos os Produtos' },
-  { id: 'Cereais', name: 'Cereais' },
-  { id: 'Legumes', name: 'Legumes' },
+  { id: 'Vegetais', name: 'Vegetais' },
   { id: 'Frutas', name: 'Frutas' },
+  { id: 'Grãos', name: 'Grãos' },
+  { id: 'Legumes', name: 'Legumes' },
   { id: 'Oleaginosas', name: 'Oleaginosas' },
-  { id: 'Outros', name: 'Outros Produtos' },
+  { id: 'Insumos', name: 'Insumos' },
+  { id: 'Cereais', name: 'Cereais' },
 ];
 
 interface CategoryFilterProps {
