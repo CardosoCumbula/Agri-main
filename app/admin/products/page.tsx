@@ -1,53 +1,296 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { Loader2, AlertCircle, Package, Check, X, Eye, EyeOff } from 'lucide-react';
 import { AdminSidebar } from '@/components/admin/AdminSidebar';
-import { ProductForm } from '@/components/admin/ProductForm';
-import { ProductsTable } from '@/components/admin/ProductsTable';
-import { useToast } from '@/components/Toast';
+import { useAdminAuth } from '@/hooks/useAdminAuth';
 import {
-  addProduct,
-  updateProduct,
-  deleteProduct,
-  getAllProducts,
-  Product,
-} from '@/lib/admin/localStorage';
-import { Menu, Plus, Loader2, LogOut, Trash2, Edit2, AlertCircle, Package } from 'lucide-react';
+  getPendingProducts,
+  getProducts,
+  approveProduct,
+  rejectProduct,
+} from '@/lib/firestore/products';
+import {
+  notifyProductApproval,
+  notifyProductRejection,
+} from '@/lib/firestore/notifications';
+import { Product } from '@/lib/types';
+import { useToast } from '@/components/Toast';
+
+type TabType = 'pending' | 'approved' | 'rejected';
 
 export default function AdminProductsPage() {
-  const router = useRouter();
+  const { isAuthorized } = useAdminAuth();
   const { addToast } = useToast();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabType>('pending');
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [processingId, setProcessingId] = useState<string | null>(null);
+  const [rejectionReason, setRejectionReason] = useState<string>('');
+  const [rejectingId, setRejectingId] = useState<string | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem('admin_token');
-    if (!token) {
-      router.push('/admin/login');
-      return;
+    if (isAuthorized) {
+      fetchProducts();
     }
-    fetchProducts();
-  }, [router]);
+  }, [isAuthorized, activeTab]);
 
-  const fetchProducts = () => {
+  const fetchProducts = async () => {
     try {
-      setError(null);
-      const data = getAllProducts();
+      setLoading(true);
+      let data: Product[];
+
+      if (activeTab === 'pending') {
+        data = await getPendingProducts();
+      } else {
+        data = await getProducts({
+          status: activeTab as any,
+        });
+      }
+
       setProducts(data);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
-      setError(errorMessage);
-      addToast(`Erro ao buscar produtos: ${errorMessage}`, 'error');
+      const msg = error instanceof Error ? error.message : 'Erro desconhecido';
+      addToast(`Erro ao buscar produtos: ${msg}`, 'error');
     } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleApprove = async (product: Product) => {
+    try {
+      setProcessingId(product.id);
+      await approveProduct(product.id);
+      await notifyProductApproval(product.farmerId, product.name, product.id);
+      addToast(`Produto "${product.name}" aprovado com sucesso!`, 'success');
+      fetchProducts();
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Erro desconhecido';
+      addToast(`Erro ao aprovar: ${msg}`, 'error');
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleReject = async (product: Product) => {
+    if (!rejectionReason.trim()) {
+      addToast('Por favor, forneça um motivo para a rejeição', 'error');
+      return;
+    }
+
+    try {
+      setProcessingId(product.id);
+      await rejectProduct(product.id, rejectionReason);
+      await notifyProductRejection(
+        product.farmerId,
+        product.name,
+        rejectionReason,
+        product.id
+      );
+      addToast(`Produto "${product.name}" rejeitado com sucesso!`, 'success');
+      setRejectingId(null);
+      setRejectionReason('');
+      fetchProducts();
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Erro desconhecido';
+      addToast(`Erro ao rejeitar: ${msg}`, 'error');
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  if (!isAuthorized) return null;
+
+  return (
+    <div className="flex h-screen bg-gray-900">
+      <AdminSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+
+      <div className="flex-1 overflow-auto">
+        <div className="p-6">
+          <div className="flex items-center gap-4 mb-6">
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="lg:hidden p-2 hover:bg-gray-800 rounded"
+            >
+              <Package size={24} className="text-white" />
+            </button>
+            <h1 className="text-3xl font-bold text-white flex items-center gap-2">
+              <Package size={32} className="text-green-500" />
+              Gerenciamento de Produtos
+            </h1>
+          </div>
+
+          {/* Tab Navigation */}
+          <div className="flex gap-2 mb-6 border-b border-gray-700">
+            <button
+              onClick={() => {
+                setActiveTab('pending');
+                setProducts([]);
+              }}
+              className={`px-4 py-2 font-medium transition ${
+                activeTab === 'pending'
+                  ? 'text-green-500 border-b-2 border-green-500'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              Pendentes {activeTab === 'pending' && `(${products.length})`}
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab('approved');
+                setProducts([]);
+              }}
+              className={`px-4 py-2 font-medium transition ${
+                activeTab === 'approved'
+                  ? 'text-green-500 border-b-2 border-green-500'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              Aprovados {activeTab === 'approved' && `(${products.length})`}
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab('rejected');
+                setProducts([]);
+              }}
+              className={`px-4 py-2 font-medium transition ${
+                activeTab === 'rejected'
+                  ? 'text-green-500 border-b-2 border-green-500'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              Rejeitados {activeTab === 'rejected' && `(${products.length})`}
+            </button>
+          </div>
+
+          {/* Loading State */}
+          {loading && (
+            <div className="flex items-center justify-center h-64">
+              <Loader2 className="animate-spin text-green-500" size={40} />
+            </div>
+          )}
+
+          {/* Products Grid */}
+          {!loading && products.length === 0 && (
+            <div className="text-center py-12">
+              <Package size={48} className="mx-auto text-gray-600 mb-4" />
+              <p className="text-gray-400 text-lg">
+                Nenhum produto {activeTab === 'pending' ? 'pendente' : activeTab}
+              </p>
+            </div>
+          )}
+
+          {!loading && products.length > 0 && (
+            <div className="grid gap-4">
+              {products.map((product) => (
+                <div
+                  key={product.id}
+                  className="bg-gray-800 rounded-lg overflow-hidden hover:bg-gray-750 transition"
+                >
+                  <div className="flex gap-4 p-4">
+                    {/* Product Image */}
+                    <div className="w-32 h-32 flex-shrink-0 rounded-lg overflow-hidden bg-gray-700">
+                      {product.imageUrl ? (
+                        <img
+                          src={product.imageUrl}
+                          alt={product.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-500">
+                          <Package size={32} />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Product Details */}
+                    <div className="flex-1 flex flex-col justify-between">
+                      <div>
+                        <h3 className="text-xl font-semibold text-white mb-1">
+                          {product.name}
+                        </h3>
+                        <p className="text-sm text-gray-400 mb-2">
+                          Agricultor: <span className="text-green-400">{product.farmerName}</span>
+                        </p>
+                        <div className="flex gap-4 text-sm text-gray-300 mb-2">
+                          <span>Categoria: {product.category}</span>
+                          <span>Província: {product.province}</span>
+                          <span>{product.quantity} {product.unit}</span>
+                        </div>
+                        <p className="text-lg font-bold text-green-400">
+                          {product.price} MZN / {product.unit}
+                        </p>
+                      </div>
+
+                      {/* Rejection Reason (if applicable) */}
+                      {product.rejectionReason && (
+                        <div className="mt-3 p-2 bg-red-900 bg-opacity-30 border border-red-700 rounded text-red-300 text-sm">
+                          <p className="font-semibold">Motivo da Rejeição:</p>
+                          <p>{product.rejectionReason}</p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Action Buttons */}
+                    {activeTab === 'pending' && (
+                      <div className="flex flex-col gap-2 justify-center">
+                        <button
+                          onClick={() => handleApprove(product)}
+                          disabled={processingId === product.id}
+                          className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg flex items-center gap-2 transition disabled:opacity-50"
+                        >
+                          {processingId === product.id ? (
+                            <Loader2 size={18} className="animate-spin" />
+                          ) : (
+                            <Check size={18} />
+                          )}
+                          Aprovar
+                        </button>
+
+                        {rejectingId === product.id ? (
+                          <div className="flex flex-col gap-2">
+                            <textarea
+                              value={rejectionReason}
+                              onChange={(e) => setRejectionReason(e.target.value)}
+                              placeholder="Motivo da rejeição..."
+                              className="px-3 py-2 bg-gray-700 text-white rounded text-sm resize-none h-20 focus:outline-none focus:ring-2 focus:ring-red-500"
+                            />
+                            <button
+                              onClick={() => handleReject(product)}
+                              disabled={processingId === product.id}
+                              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm transition disabled:opacity-50"
+                            >
+                              {processingId === product.id ? 'Rejeitando...' : 'Confirmar Rejeição'}
+                            </button>
+                            <button
+                              onClick={() => setRejectingId(null)}
+                              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm transition"
+                            >
+                              Cancelar
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setRejectingId(product.id)}
+                            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg flex items-center gap-2 transition"
+                          >
+                            <X size={18} />
+                            Rejeitar
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
       setLoading(false);
     }
   };

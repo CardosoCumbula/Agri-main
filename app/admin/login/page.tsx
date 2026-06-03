@@ -1,15 +1,24 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2, AlertCircle } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function AdminLoginPage() {
-  const [email, setEmail] = useState('admin@agromoz.com');
-  const [password, setPassword] = useState('admin123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const { user, firebaseUser, login } = useAuth();
+
+  // If user is already logged in and is admin, redirect to dashboard
+  useEffect(() => {
+    if (user && user.role === 'admin') {
+      router.push('/admin/dashboard');
+    }
+  }, [user, router]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -17,17 +26,10 @@ export default function AdminLoginPage() {
     setLoading(true);
 
     try {
-      // Simple auth check
-      if (email === 'admin@agromoz.com' && password === 'admin123') {
-        localStorage.setItem('admin_token', 'token_' + Date.now());
-        localStorage.setItem('admin_email', email);
-        router.push('/admin/products');
-      } else {
-        setError('Email ou palavra-passe inválidos');
-      }
+      await login(email, password);
+      // Navigation will happen after auth state updates
     } catch (err: any) {
-      setError(err.message || 'Falha no login');
-    } finally {
+      setError(err.message || 'Email ou palavra-passe inválidos');
       setLoading(false);
     }
   };
@@ -91,11 +93,16 @@ export default function AdminLoginPage() {
             </button>
           </form>
 
-          <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg text-green-800 text-sm">
-            <p className="font-semibold mb-2">Credenciais de Demonstração:</p>
-            <p>Email: admin@agromoz.com</p>
-            <p>Palavra-passe: admin123</p>
+          <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg text-blue-800 text-sm">
+            <p className="font-semibold mb-2">Informação:</p>
+            <p>Use suas credenciais de administrador Firebase para fazer login.</p>
+            <p className="mt-2 text-xs">Apenas utilizadores com role "admin" podem acessar o painel.</p>
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
         </div>
       </div>
     </div>

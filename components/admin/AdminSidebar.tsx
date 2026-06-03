@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
@@ -8,7 +8,10 @@ import {
   BarChart3, 
   LogOut, 
   X,
+  Clock,
 } from 'lucide-react';
+import { getPendingProducts } from '@/lib/firestore/products';
+import { getPendingListings } from '@/lib/firestore/market';
 
 interface AdminSidebarProps {
   isOpen: boolean;
@@ -17,10 +20,26 @@ interface AdminSidebarProps {
 
 export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen, onClose }) => {
   const pathname = usePathname();
+  const [pendingCount, setPendingCount] = useState(0);
 
   const isActive = (path: string) => pathname === path;
 
+  useEffect(() => {
+    const fetchPendingCount = async () => {
+      try {
+        const products = await getPendingProducts();
+        const listings = await getPendingListings();
+        setPendingCount(products.length + listings.length);
+      } catch (error) {
+        console.error('Error fetching pending count:', error);
+      }
+    };
+
+    fetchPendingCount();
+  }, []);
+
   const menuItems = [
+    { icon: Clock, label: 'Aprovações', href: '/admin/approvals', badge: pendingCount > 0 ? pendingCount : null },
     { icon: Package, label: 'Produtos', href: '/admin/products' },
     { icon: BarChart3, label: 'Análise', href: '/admin/analytics' },
   ];
@@ -62,7 +81,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen, onClose }) =
                 key={item.href}
                 href={item.href}
                 onClick={onClose}
-                className={`flex items-center gap-3 px-4 py-2 rounded-lg transition ${
+                className={`flex items-center gap-3 px-4 py-2 rounded-lg transition relative ${
                   isActive(item.href)
                     ? 'bg-green-100 text-green-700 border-l-4 border-green-600'
                     : 'text-gray-700 hover:bg-gray-100'
@@ -70,6 +89,11 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen, onClose }) =
               >
                 <Icon size={20} />
                 <span className="font-medium">{item.label}</span>
+                {item.badge && (
+                  <span className="ml-auto flex items-center justify-center w-5 h-5 rounded-full bg-red-500 text-white text-xs font-bold">
+                    {item.badge}
+                  </span>
+                )}
               </Link>
             );
           })}
