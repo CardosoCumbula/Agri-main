@@ -8,20 +8,26 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: false,
   },
-  // Allow access to remote image placeholder.
+  // Allow access to remote images
   images: {
     remotePatterns: [
       {
         protocol: 'https',
         hostname: 'picsum.photos',
         port: '',
-        pathname: '/**', // This allows any path under the hostname
+        pathname: '/**', // Placeholder images for development
       },
       {
         protocol: 'https',
         hostname: 'images.unsplash.com',
         port: '',
-        pathname: '/**',
+        pathname: '/**', // Unsplash images
+      },
+      {
+        protocol: 'https',
+        hostname: '**.firebasestorage.app',
+        port: '',
+        pathname: '/**', // Firebase Storage images
       },
     ],
   },

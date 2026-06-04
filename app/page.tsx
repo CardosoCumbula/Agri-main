@@ -7,8 +7,7 @@ import { CategoryFilter } from '@/components/CategoryFilter';
 import { ProductCard } from '@/components/ProductCard';
 import { motion, AnimatePresence } from 'motion/react';
 import Image from 'next/image';
-import { getAllProducts, getProductsByType } from '@/lib/admin/localStorage';
-import { initializeDefaultProducts } from '@/lib/init-products';
+import { getProducts } from '@/lib/firestore/products';
 import { Loader2, Filter, ArrowRight } from 'lucide-react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { LoadingCard } from '@/components/LoadingCard';
@@ -22,36 +21,32 @@ export default function Home() {
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
-    // Initialize default products if needed
-    const loadData = async () => {
+    const loadProducts = async () => {
       try {
         setLoading(true);
         setError(null);
         
-        initializeDefaultProducts();
-        
-        // Simulate slight delay for better UX
-        await new Promise(resolve => setTimeout(resolve, 300));
-        
-        // Load products from localStorage
-        const allProducts = getAllProducts();
-        // Filter by type (show 'sell' products on home page)
-        const sellProducts = allProducts.filter(p => p.type === 'sell');
+        // Fetch approved products from Firestore
+        const approvedProducts = await getProducts({
+          status: 'approved',
+        });
         
         if (selectedCategory !== 'all') {
-          setProducts(sellProducts.filter(p => p.category === selectedCategory));
+          setProducts(
+            approvedProducts.filter(p => p.category === selectedCategory)
+          );
         } else {
-          setProducts(sellProducts);
+          setProducts(approvedProducts);
         }
-        setLoading(false);
       } catch (err) {
         console.error("Error loading products:", err);
         setError('Falha ao carregar produtos. Tente novamente.');
+      } finally {
         setLoading(false);
       }
     };
     
-    loadData();
+    loadProducts();
   }, [selectedCategory]);
 
   const filteredProducts = products.filter(p => 
