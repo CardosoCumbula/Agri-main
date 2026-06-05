@@ -1,119 +1,22 @@
-import {
-  collection,
-  query,
-  where,
-  getDoc,
-  doc,
-  setDoc,
-  updateDoc,
-  Timestamp,
-  QueryConstraint,
-  getDocs,
-} from 'firebase/firestore';
-import { db } from '../firebase';
-import { User } from '../types';
-
-const USERS_COLLECTION = 'users';
-
-// Get a user by UID
-export async function getUserById(uid: string): Promise<User | null> {
-  const docRef = doc(db, USERS_COLLECTION, uid);
-  const docSnap = await getDoc(docRef);
-
-  if (!docSnap.exists()) return null;
-
-  return {
-    uid: docSnap.id,
-    ...docSnap.data(),
-    createdAt: docSnap.data().createdAt?.toDate(),
-  } as User;
+import { supabase } from '../supabase';
+import { User, UserRole } from '../types';
+const TABLE = 'users';
+export async function getUserById(uid) {
+  const { data, error } = await supabase.from(TABLE).select('*').eq('id', uid).single();
+  if (error) return null;
+  return mapUser(data);
 }
-
-// Get a user by email
-export async function getUserByEmail(email: string): Promise<User | null> {
-  const q = query(collection(db, USERS_COLLECTION), where('email', '==', email));
-  const snapshot = await getDocs(q);
-
-  if (snapshot.empty) return null;
-
-  const docSnap = snapshot.docs[0];
-  return {
-    uid: docSnap.id,
-    ...docSnap.data(),
-    createdAt: docSnap.data().createdAt?.toDate(),
-  } as User;
+export async function createUser(uid, userData) {
+  const { error } = await supabase.from(TABLE).insert({ id: uid, name: userData.name, phone: userData.phone, role: userData.role, province: userData.province, email: userData.email });
+  if (error) throw error;
 }
-
-// Create a new user document
-export async function createUser(uid: string, user: Omit<User, 'uid' | 'createdAt'>): Promise<void> {
-  const docRef = doc(db, USERS_COLLECTION, uid);
-  await setDoc(docRef, {
-    uid,
-    ...user,
-    createdAt: Timestamp.now(),
-  });
+export async function updateUserProfile(uid, updates) {
+  const { error } = await supabase.from(TABLE).update({ ...(updates.name && { name: updates.name }), ...(updates.phone && { phone: updates.phone }), ...(updates.province && { province: updates.province }) }).eq('id', uid);
+  if (error) throw error;
 }
-
-// Update user profile
-export async function updateUserProfile(
-  uid: string,
-  updates: Partial<User>
-): Promise<void> {
-  const docRef = doc(db, USERS_COLLECTION, uid);
-  await updateDoc(docRef, {
-    ...updates,
-    createdAt: updates.createdAt ? Timestamp.fromDate(updates.createdAt) : undefined,
-  });
-}
-
-// Deactivate a user account
-export async function deactivateUser(uid: string): Promise<void> {
-  const docRef = doc(db, USERS_COLLECTION, uid);
-  await updateDoc(docRef, {
-    deactivated: true,
-  });
-}
-
-// Reactivate a user account
-export async function reactivateUser(uid: string): Promise<void> {
-  const docRef = doc(db, USERS_COLLECTION, uid);
-  await updateDoc(docRef, {
-    deactivated: false,
-  });
-}
-
-// Get all users (admin only)
-export async function getAllUsers(): Promise<User[]> {
-  const q = query(collection(db, USERS_COLLECTION));
-  const snapshot = await getDocs(q);
-
-  return snapshot.docs.map((doc) => ({
-    uid: doc.id,
-    ...doc.data(),
-    createdAt: doc.data().createdAt?.toDate(),
-  } as User));
-}
-
-// Get farmers only
-export async function getFarmers(): Promise<User[]> {
-  const q = query(collection(db, USERS_COLLECTION), where('role', '==', 'farmer'));
-  const snapshot = await getDocs(q);
-
-  return snapshot.docs.map((doc) => ({
-    uid: doc.id,
-    ...doc.data(),
-    createdAt: doc.data().createdAt?.toDate(),
-  } as User));
-}
-
-// Get buyers only
-export async function getBuyers(): Promise<User[]> {
-  const q = query(collection(db, USERS_COLLECTION), where('role', '==', 'buyer'));
-  const snapshot = await getDocs(q);
-
-  return snapshot.docs.map((doc) => ({
-    uid: doc.id,
-    ...doc.data(),
-    createdAt: doc.data().createdAt?.toDate(),
-  } as User));
-}
+export async function deactivateUser(uid) { const { error } = await supabase.from(TABLE).update({ deactivated: true }).eq('id', uid); if (error) throw error; }
+export async function reactivateUser(uid) { const { error } = await supabase.from(TABLE).update({ deactivated: false }).eq('id', uid); if (error) throw error; }
+export async function getAllUsers() { const { data, error } = await supabase.from(TABLE).select('*').order('created_at', { ascending: false }); if (error) throw error; return (data || []).map(mapUser); }
+export async function getFarmers() { const { data, error } = await supabase.from(TABLE).select('*').eq('role', 'farmer'); if (error) throw error; return (data || []).map(mapUser); }
+export async function getBuyers() { const { data, error } = await supabase.from(TABLE).select('*').eq('role', 'buyer'); if (error) throw error; return (data || []).map(mapUser); }
+function mapUser(row) { return { uid: row.id, name: row.name, phone: row.phone, role: row.role, province: row.province, email: row.email, deactivated: row.deactivated, createdAt: new Date(row.created_at) }; }

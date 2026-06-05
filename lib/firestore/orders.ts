@@ -1,161 +1,20 @@
-import {
-  collection,
-  query,
-  where,
-  getDoc,
-  doc,
-  addDoc,
-  updateDoc,
-  QueryConstraint,
-  Timestamp,
-  getDocs,
-  arrayUnion,
-} from 'firebase/firestore';
-import { db } from '../firebase';
-import { Order, OrderStatus, OrderStatusEntry } from '../types';
-
-const ORDERS_COLLECTION = 'orders';
-
-// Create a new order
-export async function createOrder(order: Omit<Order, 'id' | 'createdAt' | 'updatedAt' | 'statusHistory'>): Promise<string> {
-  const docRef = await addDoc(collection(db, ORDERS_COLLECTION), {
-    ...order,
-    statusHistory: [
-      {
-        status: order.status,
-        timestamp: Timestamp.now(),
-      },
-    ],
-    createdAt: Timestamp.now(),
-    updatedAt: Timestamp.now(),
-  });
-  return docRef.id;
+import { supabase } from '../supabase';
+const TABLE = 'orders';
+export async function createOrder(order) {
+  const { data, error } = await supabase.from(TABLE).insert({ product_id: order.productId, product_name: order.productName, farmer_id: order.farmerId, farmer_name: order.farmerName, buyer_id: order.buyerId, buyer_name: order.buyerName, quantity: order.quantity, unit_price: order.unitPrice, total_price: order.totalPrice, unit: order.unit, status: 'pending', payment_method: order.paymentMethod, payment_status: 'unpaid', delivery_address: order.deliveryAddress, province: order.province, notes: order.notes || null, status_history: [{ status: 'pending', timestamp: new Date().toISOString() }] }).select('id').single();
+  if (error) throw error;
+  return data.id;
 }
-
-// Get an order by ID
-export async function getOrderById(orderId: string): Promise<Order | null> {
-  const docRef = doc(db, ORDERS_COLLECTION, orderId);
-  const docSnap = await getDoc(docRef);
-
-  if (!docSnap.exists()) return null;
-
-  return {
-    id: docSnap.id,
-    ...docSnap.data(),
-    createdAt: docSnap.data().createdAt?.toDate(),
-    updatedAt: docSnap.data().updatedAt?.toDate(),
-    statusHistory: docSnap.data().statusHistory?.map((entry: any) => ({
-      ...entry,
-      timestamp: entry.timestamp?.toDate(),
-    })),
-  } as Order;
+export async function getOrderById(orderId) { const { data, error } = await supabase.from(TABLE).select('*').eq('id', orderId).single(); if (error) return null; return mapOrder(data); }
+export async function getOrdersByBuyer(buyerId) { const { data, error } = await supabase.from(TABLE).select('*').eq('buyer_id', buyerId).order('created_at', { ascending: false }); if (error) throw error; return (data || []).map(mapOrder); }
+export async function getOrdersByFarmer(farmerId) { const { data, error } = await supabase.from(TABLE).select('*').eq('farmer_id', farmerId).order('created_at', { ascending: false }); if (error) throw error; return (data || []).map(mapOrder); }
+export async function getAllOrders() { const { data, error } = await supabase.from(TABLE).select('*').order('created_at', { ascending: false }); if (error) throw error; return (data || []).map(mapOrder); }
+export async function updateOrderStatus(orderId, status) {
+  const { data: existing } = await supabase.from(TABLE).select('status_history').eq('id', orderId).single();
+  const history = existing?.status_history || [];
+  history.push({ status, timestamp: new Date().toISOString() });
+  const { error } = await supabase.from(TABLE).update({ status, status_history: history, updated_at: new Date().toISOString() }).eq('id', orderId);
+  if (error) throw error;
 }
-
-// Get all orders for a buyer
-export async function getOrdersByBuyer(buyerId: string): Promise<Order[]> {
-  const q = query(collection(db, ORDERS_COLLECTION), where('buyerId', '==', buyerId));
-  const snapshot = await getDocs(q);
-
-  return snapshot.docs.map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
-    createdAt: doc.data().createdAt?.toDate(),
-    updatedAt: doc.data().updatedAt?.toDate(),
-    statusHistory: doc.data().statusHistory?.map((entry: any) => ({
-      ...entry,
-      timestamp: entry.timestamp?.toDate(),
-    })),
-  } as Order));
-}
-
-// Get all orders for a farmer
-export async function getOrdersByFarmer(farmerId: string): Promise<Order[]> {
-  const q = query(collection(db, ORDERS_COLLECTION), where('farmerId', '==', farmerId));
-  const snapshot = await getDocs(q);
-
-  return snapshot.docs.map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
-    createdAt: doc.data().createdAt?.toDate(),
-    updatedAt: doc.data().updatedAt?.toDate(),
-    statusHistory: doc.data().statusHistory?.map((entry: any) => ({
-      ...entry,
-      timestamp: entry.timestamp?.toDate(),
-    })),
-  } as Order));
-}
-
-// Update order status
-export async function updateOrderStatus(
-  orderId: string,
-  newStatus: OrderStatus
-): Promise<void> {
-  const docRef = doc(db, ORDERS_COLLECTION, orderId);
-  const orderDoc = await getDoc(docRef);
-
-  if (!orderDoc.exists()) {
-    throw new Error('Order not found');
-  }
-
-  const statusEntry: OrderStatusEntry = {
-    status: newStatus,
-    timestamp: new Date(),
-  };
-
-  await updateDoc(docRef, {
-    status: newStatus,
-    statusHistory: arrayUnion(statusEntry),
-    updatedAt: Timestamp.now(),
-  });
-}
-
-// Update payment status
-export async function updatePaymentStatus(
-  orderId: string,
-  paymentStatus: 'unpaid' | 'paid' | 'refunded'
-): Promise<void> {
-  const docRef = doc(db, ORDERS_COLLECTION, orderId);
-  await updateDoc(docRef, {
-    paymentStatus,
-    updatedAt: Timestamp.now(),
-  });
-}
-
-// Cancel an order
-export async function cancelOrder(orderId: string): Promise<void> {
-  await updateOrderStatus(orderId, 'cancelled');
-}
-
-// Get all orders (admin view)
-export async function getAllOrders(): Promise<Order[]> {
-  const q = query(collection(db, ORDERS_COLLECTION));
-  const snapshot = await getDocs(q);
-
-  return snapshot.docs.map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
-    createdAt: doc.data().createdAt?.toDate(),
-    updatedAt: doc.data().updatedAt?.toDate(),
-    statusHistory: doc.data().statusHistory?.map((entry: any) => ({
-      ...entry,
-      timestamp: entry.timestamp?.toDate(),
-    })),
-  } as Order));
-}
-
-// Get orders by product ID
-export async function getOrdersByProductId(productId: string): Promise<Order[]> {
-  const q = query(collection(db, ORDERS_COLLECTION), where('productId', '==', productId));
-  const snapshot = await getDocs(q);
-
-  return snapshot.docs.map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
-    createdAt: doc.data().createdAt?.toDate(),
-    updatedAt: doc.data().updatedAt?.toDate(),
-    statusHistory: doc.data().statusHistory?.map((entry: any) => ({
-      ...entry,
-      timestamp: entry.timestamp?.toDate(),
-    })),
-  } as Order));
-}
+export async function cancelOrder(orderId) { await updateOrderStatus(orderId, 'cancelled'); }
+function mapOrder(row) { return { id: row.id, productId: row.product_id, productName: row.product_name, farmerId: row.farmer_id, farmerName: row.farmer_name, buyerId: row.buyer_id, buyerName: row.buyer_name, quantity: row.quantity, unitPrice: row.unit_price, totalPrice: row.total_price, unit: row.unit, status: row.status, paymentMethod: row.payment_method, paymentStatus: row.payment_status, deliveryAddress: row.delivery_address, province: row.province, notes: row.notes, statusHistory: row.status_history, createdAt: new Date(row.created_at), updatedAt: new Date(row.updated_at) }; }

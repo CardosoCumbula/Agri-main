@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Menu, X, LogOut, LogIn } from 'lucide-react';
@@ -9,10 +9,13 @@ import { motion, AnimatePresence } from 'motion/react';
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
-  const [isLoggedIn, setIsLoggedIn] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    return !!localStorage.getItem('admin_token');
-  });
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    setIsLoggedIn(!!localStorage.getItem('admin_token'));
+  }, []);
 
   const navLinks = [
     { href: '/', label: 'A Machamba' },
@@ -30,30 +33,25 @@ export function Navbar() {
   };
 
   return (
-    <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-stone-200 shadow-sm" role="navigation" aria-label="Navegação principal">
+    <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-stone-200 shadow-sm" role="navigation" aria-label="Navegacao principal">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16 items-center">
-          {/* Logo */}
+
           <div className="flex items-center">
             <Link href="/" className="flex items-center space-x-2" aria-label="AgroMoz Home">
               <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-xl" aria-hidden="true">🌾</span>
+                <span className="text-white font-bold text-xl">🌾</span>
               </div>
               <span className="text-xl font-serif font-bold tracking-tight text-stone-900">AgroMoz</span>
             </Link>
           </div>
 
-          {/* Desktop Nav */}
           <div className="hidden md:flex items-center space-x-1" role="menubar">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
-                className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${
-                  isActive(link.href)
-                    ? 'text-emerald-700 bg-emerald-50'
-                    : 'text-stone-700 hover:text-emerald-700 hover:bg-stone-50'
-                }`}
+                className={isActive(link.href) ? 'px-4 py-2 rounded-lg font-bold text-sm text-emerald-700 bg-emerald-50' : 'px-4 py-2 rounded-lg font-bold text-sm text-stone-700 hover:text-emerald-700 hover:bg-stone-50'}
                 aria-current={isActive(link.href) ? 'page' : undefined}
               >
                 {link.label}
@@ -61,23 +59,20 @@ export function Navbar() {
             ))}
           </div>
 
-          {/* Right Side */}
           <div className="hidden md:flex items-center space-x-4">
-            {isLoggedIn ? (
+            {mounted && isLoggedIn ? (
               <>
-                <Link 
-                  href="/admin/products" 
+                <Link
+                  href="/admin/products"
                   className="text-sm font-bold text-emerald-700 hover:bg-emerald-50 px-3 py-2 rounded-lg transition-all"
-                  aria-label="Painel de Administração"
                 >
                   Painel Admin
                 </Link>
-                <button 
+                <button
                   onClick={handleLogout}
                   className="text-sm font-bold text-stone-600 hover:text-red-600 px-3 py-2 rounded-lg flex items-center gap-1 transition-all hover:bg-red-50"
-                  aria-label="Sair da conta"
                 >
-                  <LogOut className="w-4 h-4" aria-hidden="true" />
+                  <LogOut className="w-4 h-4" />
                   Sair
                 </button>
               </>
@@ -85,21 +80,19 @@ export function Navbar() {
               <Link
                 href="/admin/login"
                 className="bg-emerald-700 text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-emerald-800 transition-all shadow-md active:scale-95 flex items-center gap-2"
-                aria-label="Fazer Login"
               >
-                <LogIn className="w-4 h-4" aria-hidden="true" />
-                Administração
+                <LogIn className="w-4 h-4" />
+                Administracao
               </Link>
             )}
           </div>
 
-          {/* Mobile menu button */}
           <div className="md:hidden flex items-center">
             <button
               onClick={() => setIsOpen(!isOpen)}
               className="p-2 rounded-md text-stone-600 hover:text-stone-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
               aria-expanded={isOpen}
-              aria-label="Menu de navegação"
+              aria-label="Menu de navegacao"
             >
               {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>
@@ -107,7 +100,6 @@ export function Navbar() {
         </div>
       </div>
 
-      {/* Mobile Nav */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -123,27 +115,23 @@ export function Navbar() {
                   key={link.href}
                   href={link.href}
                   onClick={() => setIsOpen(false)}
-                  className={`block px-3 py-3 rounded-lg font-medium transition-all ${
-                    isActive(link.href)
-                      ? 'text-emerald-700 bg-emerald-50'
-                      : 'text-stone-700 hover:text-emerald-700 hover:bg-stone-50'
-                  }`}
+                  className={isActive(link.href) ? 'block px-3 py-3 rounded-lg font-medium text-emerald-700 bg-emerald-50' : 'block px-3 py-3 rounded-lg font-medium text-stone-700 hover:text-emerald-700 hover:bg-stone-50'}
                 >
                   {link.label}
                 </Link>
               ))}
-              
+
               <div className="pt-4 border-t border-stone-100">
-                {isLoggedIn ? (
+                {mounted && isLoggedIn ? (
                   <>
-                    <Link 
-                      href="/admin/products" 
+                    <Link
+                      href="/admin/products"
                       onClick={() => setIsOpen(false)}
                       className="block px-3 py-3 rounded-lg font-medium text-emerald-700 hover:bg-emerald-50"
                     >
                       Painel Admin
                     </Link>
-                    <button 
+                    <button
                       onClick={handleLogout}
                       className="w-full text-left px-3 py-3 text-sm font-bold text-red-600 hover:bg-red-50 rounded-md flex items-center gap-2"
                     >
@@ -157,7 +145,7 @@ export function Navbar() {
                     onClick={() => setIsOpen(false)}
                     className="block px-3 py-3 rounded-lg font-medium bg-emerald-700 text-white hover:bg-emerald-800 text-center"
                   >
-                    Administração
+                    Administracao
                   </Link>
                 )}
               </div>

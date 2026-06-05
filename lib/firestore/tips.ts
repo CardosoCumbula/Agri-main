@@ -1,95 +1,23 @@
-import {
-  collection,
-  query,
-  where,
-  getDocs,
-  getDoc,
-  doc,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  QueryConstraint,
-  Timestamp,
-} from 'firebase/firestore';
-import { db } from '../firebase';
-import { Tip, TipCategory } from '../types';
-
-const TIPS_COLLECTION = 'tips';
-
-// Get all tips with optional category filter
-export async function getTips(category?: TipCategory): Promise<Tip[]> {
-  const constraints: QueryConstraint[] = [];
-
-  if (category) {
-    constraints.push(where('category', '==', category));
-  }
-
-  const q = query(collection(db, TIPS_COLLECTION), ...constraints);
-  const snapshot = await getDocs(q);
-
-  return snapshot.docs.map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
-    publishedAt: doc.data().publishedAt?.toDate(),
-  } as Tip));
+import { supabase } from '../supabase';
+export async function getTips(category) {
+  let q = supabase.from('tips').select('*');
+  if (category) q = q.eq('category', category);
+  const { data, error } = await q.order('published_at', { ascending: false });
+  if (error) throw error;
+  return (data || []).map(r => ({ id: r.id, title: r.title, category: r.category, readTime: r.read_time, summary: r.summary, imageUrl: r.image_url, publishedAt: new Date(r.published_at) }));
 }
-
-// Get a single tip by ID
-export async function getTipById(tipId: string): Promise<Tip | null> {
-  const docRef = doc(db, TIPS_COLLECTION, tipId);
-  const docSnap = await getDoc(docRef);
-
-  if (!docSnap.exists()) return null;
-
-  return {
-    id: docSnap.id,
-    ...docSnap.data(),
-    publishedAt: docSnap.data().publishedAt?.toDate(),
-  } as Tip;
+export async function getTipById(tipId) {
+  const { data, error } = await supabase.from('tips').select('*').eq('id', tipId).single();
+  if (error) return null;
+  return { id: data.id, title: data.title, category: data.category, readTime: data.read_time, summary: data.summary, imageUrl: data.image_url, publishedAt: new Date(data.published_at) };
 }
-
-// Add a new tip
-export async function addTip(tip: Omit<Tip, 'id' | 'publishedAt'>): Promise<string> {
-  const docRef = await addDoc(collection(db, TIPS_COLLECTION), {
-    ...tip,
-    publishedAt: Timestamp.now(),
-  });
-  return docRef.id;
+export async function addTip(tip) {
+  const { data, error } = await supabase.from('tips').insert({ title: tip.title, category: tip.category, read_time: tip.readTime, summary: tip.summary, image_url: tip.imageUrl }).select('id').single();
+  if (error) throw error;
+  return data.id;
 }
-
-// Update a tip
-export async function updateTip(
-  tipId: string,
-  updates: Partial<Tip>
-): Promise<void> {
-  const docRef = doc(db, TIPS_COLLECTION, tipId);
-  await updateDoc(docRef, {
-    ...updates,
-    publishedAt: updates.publishedAt ? Timestamp.fromDate(updates.publishedAt) : undefined,
-  });
+export async function updateTip(tipId, updates) {
+  const { error } = await supabase.from('tips').update({ ...(updates.title && { title: updates.title }), ...(updates.category && { category: updates.category }), ...(updates.summary && { summary: updates.summary }), ...(updates.imageUrl && { image_url: updates.imageUrl }) }).eq('id', tipId);
+  if (error) throw error;
 }
-
-// Delete a tip
-export async function deleteTip(tipId: string): Promise<void> {
-  const docRef = doc(db, TIPS_COLLECTION, tipId);
-  await deleteDoc(docRef);
-}
-
-// Get tips by category count (for dashboard stats)
-export async function getTipsByCategoryCount(): Promise<Record<TipCategory, number>> {
-  const categories: TipCategory[] = ['Pragas', 'Irrigação', 'Sementes', 'Boas Práticas'];
-  const counts: Record<TipCategory, number> = {
-    Pragas: 0,
-    Irrigação: 0,
-    Sementes: 0,
-    'Boas Práticas': 0,
-  };
-
-  for (const category of categories) {
-    const q = query(collection(db, TIPS_COLLECTION), where('category', '==', category));
-    const snapshot = await getDocs(q);
-    counts[category] = snapshot.size;
-  }
-
-  return counts;
-}
+export async function deleteTip(tipId) { const { error } = await supabase.from('tips').delete().eq('id', tipId); if (error) throw error; }

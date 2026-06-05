@@ -144,7 +144,7 @@ export default function Home() {
               </div>
               <div className="hidden md:block w-full md:w-1/3 aspect-square rounded-2xl overflow-hidden border-4 border-white/10 shadow-2xl relative">
                 <Image 
-                  src="https://picsum.photos/seed/farmer-success/600/600" 
+                  src="https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=500&h=500&fit=crop/seed/farmer-success/600/600" 
                   alt="Agricultor de Sucesso em Moçambique" 
                   fill
                   className="object-cover"

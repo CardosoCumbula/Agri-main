@@ -64,7 +64,7 @@ export function Hero() {
           >
             <div className="relative rounded-[2rem] overflow-hidden shadow-2xl aspect-[4/5]">
               <Image 
-                src="https://picsum.photos/seed/mozambique-farm/800/1000" 
+                src="https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=500&h=500&fit=crop/seed/mozambique-farm/800/1000" 
                 alt="Agricultura em Moçambique" 
                 fill
                 className="object-cover"
@@ -76,7 +76,7 @@ export function Hero() {
                 <div className="flex items-center space-x-4">
                   <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-emerald-500 relative">
                     <Image 
-                      src="https://picsum.photos/seed/farmer/100/100" 
+                      src="https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=500&h=500&fit=crop/seed/farmer/100/100" 
                       alt="Farmer" 
                       fill
                       className="object-cover"

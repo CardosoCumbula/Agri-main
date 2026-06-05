@@ -40,7 +40,7 @@ const mockBuyers: BuyerListing[] = [
     price: 'Até MZN 900 / Caixa',
     quantity: 'Precisa: 100 Caixas/Semana',
     timestamp: 'Hoje',
-    image: 'https://images.unsplash.com/photo-1592924357228-91a4daadcccf?w=400&h=400&fit=crop',
+    image: 'https://images.unsplash.com/photo-1592921870789-04563d55041c?w=500&h=500&fit=crop',
     type: 'buy',
   },
   {
@@ -51,7 +51,7 @@ const mockBuyers: BuyerListing[] = [
     price: 'MZN 1.200 / Saco',
     quantity: 'Precisa: 500 Sacos',
     timestamp: 'Ontem',
-    image: 'https://images.unsplash.com/photo-1574943320219-553eb213f72d?w=400&h=400&fit=crop',
+    image: 'https://images.unsplash.com/photo-1574943320219-553eb213f72d?w=500&h=500&fit=crop',
     type: 'buy',
   },
   {
@@ -62,7 +62,7 @@ const mockBuyers: BuyerListing[] = [
     price: 'MZN 3.500 / Saco',
     quantity: 'Precisa: 10 Sacos',
     timestamp: 'Há 2 dias',
-    image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400&h=400&fit=crop',
+    image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=500&h=500&fit=crop',
     type: 'buy',
   },
   {
@@ -73,7 +73,7 @@ const mockBuyers: BuyerListing[] = [
     price: 'MZN 450 / Saco',
     quantity: 'Precisa: 200 Sacos/Mês',
     timestamp: 'Há 3 dias',
-    image: 'https://images.unsplash.com/photo-1563621033406-be7bc20a26cb?w=400&h=400&fit=crop',
+    image: 'https://images.unsplash.com/photo-1508747703725-719777637510?w=500&h=500&fit=crop',
     type: 'buy',
   },
   {
@@ -84,7 +84,7 @@ const mockBuyers: BuyerListing[] = [
     price: 'MZN 1.750 / Saco',
     quantity: 'Precisa: 300 Sacos',
     timestamp: 'Hoje',
-    image: 'https://images.unsplash.com/photo-1561181286-d3fee7d55364?w=400&h=400&fit=crop',
+    image: 'https://images.unsplash.com/photo-1625246333195-78d9c38ad576?w=500&h=500&fit=crop',
     type: 'buy',
   },
   {
@@ -95,7 +95,7 @@ const mockBuyers: BuyerListing[] = [
     price: 'MZN 950 / Saco',
     quantity: 'Precisa: 250 Sacos/Mês',
     timestamp: 'Ontem',
-    image: 'https://images.unsplash.com/photo-1586985289688-cacf2b32b55f?w=400&h=400&fit=crop',
+    image: 'https://images.unsplash.com/photo-1586985289688-cacf2b32b55f?w=500&h=500&fit=crop',
     type: 'buy',
   },
 ];
@@ -109,7 +109,7 @@ const mockSellers: SellerListing[] = [
     price: 'MZN 28 / Unidade',
     quantity: 'Disponível: 500 un',
     timestamp: 'Hoje',
-    image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400&h=400&fit=crop',
+    image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=500&h=500&fit=crop',
     type: 'sell',
   },
   {
@@ -120,7 +120,7 @@ const mockSellers: SellerListing[] = [
     price: 'MZN 40 / kg',
     quantity: 'Disponível: 2.000 kg',
     timestamp: 'Ontem',
-    image: 'https://images.unsplash.com/photo-1596195694269-f5033e338d1b?w=400&h=400&fit=crop',
+    image: 'https://images.unsplash.com/photo-1528825871115-3581a5387919?w=500&h=500&fit=crop',
     type: 'sell',
   },
   {
@@ -164,7 +164,7 @@ const mockSellers: SellerListing[] = [
     price: 'MZN 55 / kg',
     quantity: 'Disponível: 600 kg',
     timestamp: 'Hoje',
-    image: 'https://images.unsplash.com/photo-1563621033406-be7bc20a26cb?w=400&h=400&fit=crop',
+    image: 'https://images.unsplash.com/photo-1508747703725-719777637510?w=500&h=500&fit=crop',
     type: 'sell',
   },
 ];

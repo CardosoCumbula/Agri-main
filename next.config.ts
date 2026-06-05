@@ -13,7 +13,7 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'picsum.photos',
+        hostname: 'images.unsplash.com/photo-1500382017468-9049fed747ef?w=500&h=500&fit=crop',
         port: '',
         pathname: '/**', // Placeholder images for development
       },

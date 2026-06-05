@@ -1,35 +1,15 @@
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { auth } from '@/firebase';
-import { onAuthStateChanged, User } from 'firebase/auth';
-
-const ADMIN_EMAILS = process.env.NEXT_PUBLIC_ADMIN_EMAILS?.split(',').map(e => e.trim()) || [];
-
-export const useAdminAuth = () => {
-  const [user, setUser] = useState<User | null>(null);
+'use client';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
+export function useAdminAuth() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
-  const router = useRouter();
-
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      if (currentUser && ADMIN_EMAILS.includes(currentUser.email || '')) {
-        setUser(currentUser);
-        setIsAdmin(true);
-      } else if (currentUser) {
-        setUser(null);
-        setIsAdmin(false);
-        router.push('/');
-      } else {
-        setUser(null);
-        setIsAdmin(false);
-        router.push('/admin/login');
-      }
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      const adminEmails = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || '').split(',');
+      setIsAdmin(!!session?.user && adminEmails.includes(session.user.email || ''));
       setLoading(false);
     });
-
-    return () => unsubscribe();
-  }, [router]);
-
-  return { user, isAdmin, loading };
-};
+  }, []);
+  return { isAdmin, loading };
+}

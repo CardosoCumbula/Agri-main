@@ -1,119 +1,93 @@
-import {
-  collection,
-  query,
-  where,
-  getDocs,
-  getDoc,
-  doc,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  QueryConstraint,
-  Timestamp,
-} from 'firebase/firestore';
-import { db } from '../firebase';
+import { supabase } from '../supabase';
 import { MarketListing, MarketListingStatus } from '../types';
 
-const MARKET_COLLECTION = 'market_listings';
+const TABLE = 'market_listings';
 
-// Get all approved market listings with optional filters
 export async function getListings(filters?: {
   province?: string;
   status?: MarketListingStatus;
 }): Promise<MarketListing[]> {
-  const constraints: QueryConstraint[] = [];
-
-  // Only show approved listings by default
   const status = filters?.status || 'approved';
-  constraints.push(where('status', '==', status));
-
-  if (filters?.province) {
-    constraints.push(where('location', '==', filters.province));
-  }
-
-  const q = query(collection(db, MARKET_COLLECTION), ...constraints);
-  const snapshot = await getDocs(q);
-
-  return snapshot.docs.map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
-    postedAt: doc.data().postedAt?.toDate(),
-  } as MarketListing));
+  let q = supabase.from(TABLE).select('*').eq('status', status);
+  if (filters?.province) q = q.eq('location', filters.province);
+  const { data, error } = await q.order('posted_at', { ascending: false });
+  if (error) throw error;
+  return (data || []).map(mapListing);
 }
 
-// Get a single market listing by ID
 export async function getListingById(listingId: string): Promise<MarketListing | null> {
-  const docRef = doc(db, MARKET_COLLECTION, listingId);
-  const docSnap = await getDoc(docRef);
-
-  if (!docSnap.exists()) return null;
-
-  return {
-    id: docSnap.id,
-    ...docSnap.data(),
-    postedAt: docSnap.data().postedAt?.toDate(),
-  } as MarketListing;
+  const { data, error } = await supabase
+    .from(TABLE).select('*').eq('id', listingId).single();
+  if (error) return null;
+  return mapListing(data);
 }
 
-// Add a new market listing (initially with 'pending' status)
 export async function addListing(listing: Omit<MarketListing, 'id' | 'postedAt'>): Promise<string> {
-  const docRef = await addDoc(collection(db, MARKET_COLLECTION), {
-    ...listing,
-    postedAt: Timestamp.now(),
-  });
-  return docRef.id;
+  const { data, error } = await supabase.from(TABLE).insert({
+    product_name: listing.productName,
+    buyer_name: listing.buyerName,
+    buyer_type: listing.buyerType,
+    location: listing.location,
+    price_per_unit: listing.pricePerUnit,
+    unit: listing.unit,
+    quantity_needed: listing.quantityNeeded,
+    frequency: listing.frequency,
+    image_url: listing.imageUrl,
+    status: 'pending',
+  }).select('id').single();
+  if (error) throw error;
+  return data.id;
 }
 
-// Update a market listing
-export async function updateListing(
-  listingId: string,
-  updates: Partial<MarketListing>
-): Promise<void> {
-  const docRef = doc(db, MARKET_COLLECTION, listingId);
-  await updateDoc(docRef, {
-    ...updates,
-    postedAt: updates.postedAt ? Timestamp.fromDate(updates.postedAt) : undefined,
-  });
+export async function updateListing(listingId: string, updates: Partial<MarketListing>): Promise<void> {
+  const { error } = await supabase.from(TABLE).update({
+    ...(updates.productName && { product_name: updates.productName }),
+    ...(updates.location && { location: updates.location }),
+    ...(updates.pricePerUnit && { price_per_unit: updates.pricePerUnit }),
+    ...(updates.status && { status: updates.status }),
+    ...(updates.rejectionReason !== undefined && { rejection_reason: updates.rejectionReason }),
+  }).eq('id', listingId);
+  if (error) throw error;
 }
 
-// Delete a market listing
 export async function deleteListing(listingId: string): Promise<void> {
-  const docRef = doc(db, MARKET_COLLECTION, listingId);
-  await deleteDoc(docRef);
+  const { error } = await supabase.from(TABLE).delete().eq('id', listingId);
+  if (error) throw error;
 }
 
-// Approve a market listing
 export async function approveListing(listingId: string): Promise<void> {
-  const docRef = doc(db, MARKET_COLLECTION, listingId);
-  await updateDoc(docRef, {
-    status: 'approved',
-    rejectionReason: null,
-  });
+  const { error } = await supabase.from(TABLE)
+    .update({ status: 'approved', rejection_reason: null }).eq('id', listingId);
+  if (error) throw error;
 }
 
-// Reject a market listing with a reason
-export async function rejectListing(
-  listingId: string,
-  rejectionReason: string
-): Promise<void> {
-  const docRef = doc(db, MARKET_COLLECTION, listingId);
-  await updateDoc(docRef, {
-    status: 'rejected',
-    rejectionReason,
-  });
+export async function rejectListing(listingId: string, rejectionReason: string): Promise<void> {
+  const { error } = await supabase.from(TABLE)
+    .update({ status: 'rejected', rejection_reason: rejectionReason }).eq('id', listingId);
+  if (error) throw error;
 }
 
-// Get all pending market listings (admin view)
 export async function getPendingListings(): Promise<MarketListing[]> {
-  const q = query(
-    collection(db, MARKET_COLLECTION),
-    where('status', '==', 'pending')
-  );
-  const snapshot = await getDocs(q);
+  const { data, error } = await supabase.from(TABLE)
+    .select('*').eq('status', 'pending').order('posted_at', { ascending: false });
+  if (error) throw error;
+  return (data || []).map(mapListing);
+}
 
-  return snapshot.docs.map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
-    postedAt: doc.data().postedAt?.toDate(),
-  } as MarketListing));
+function mapListing(row: any): MarketListing {
+  return {
+    id: row.id,
+    productName: row.product_name,
+    buyerName: row.buyer_name,
+    buyerType: row.buyer_type,
+    location: row.location,
+    pricePerUnit: row.price_per_unit,
+    unit: row.unit,
+    quantityNeeded: row.quantity_needed,
+    frequency: row.frequency,
+    imageUrl: row.image_url,
+    status: row.status,
+    rejectionReason: row.rejection_reason,
+    postedAt: new Date(row.posted_at),
+  };
 }
